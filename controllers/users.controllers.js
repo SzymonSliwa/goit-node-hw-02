@@ -118,31 +118,34 @@ const loginUser = async (req, res, next) => {
   }
 };
 
-const logoutUser = async (req, res, _) => {
+const logoutUser = async (req, res, next) => {
   try {
     const { id } = req.user;
     await service.getLogoutUser(id);
     res.status(204).json({});
   } catch (err) {
     console.log(err);
+    next(err);
   }
 };
 
-const currentUser = async (req, res, _) => {
+const currentUser = async (req, res, next) => {
   try {
-    const { id } = req.user;
-    const response = await service.getUserById(id);
+    const { email, subscription, id } = req.user;
+    //  const response = await service.getUserById(id);
     res.status(200).json({
       status: "success",
       code: 200,
       data: "OK",
       ResponseBody: {
-        email: response.email,
-        subscription: response.subscription,
+        email,
+        subscription,
+        id,
       },
     });
   } catch (err) {
     console.log(err);
+    next(err);
   }
 };
 
