@@ -1,4 +1,5 @@
 const app = require("./app");
+const { createFolderIfNotExist, uploadDir } = require("./middleware/upload");
 
 const mongoose = require("mongoose");
 
@@ -16,6 +17,7 @@ connection
   .then(() => {
     console.log("Database connection successful");
     app.listen(PORT, () => {
+      createFolderIfNotExist(uploadDir);
       console.log(`Server running. Use our API on port: ${PORT}`);
     });
   })
