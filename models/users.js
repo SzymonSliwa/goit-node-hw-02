@@ -25,12 +25,12 @@ const user = new Schema({
     type: Schema.Types.ObjectId,
     ref: "user",
   },
+  avatarURL: {
+    type: String,
+  },
 });
 
 user.methods.validPassword = function (password) {
-  console.log(password);
-  console.log(this.password);
-  console.log(bCrypt.compareSync(password, this.password));
   return bCrypt.compareSync(password, this.password);
 };
 
@@ -50,6 +50,10 @@ const getUserById = async (id) => {
   return User.findOne({ _id: id });
 };
 
+const updateUserAvatar = async (id, avatarURL) => {
+  return User.findByIdAndUpdate({ _id: id }, { avatarURL }, { new: true });
+};
+
 const User = mongoose.model("user", user, "users");
 
 module.exports = {
@@ -57,5 +61,6 @@ module.exports = {
   loginUser,
   getLogoutUser,
   getUserById,
+  updateUserAvatar,
   User,
 };
