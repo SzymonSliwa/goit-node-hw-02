@@ -16,6 +16,9 @@ const Jimp = require("jimp");
 
 const secret = process.env.JWT_SECRET;
 
+const { nanoid } = require("nanoid");
+const nodemailer = require("nodemailer");
+
 const userValidator = Joi.object({
   email: Joi.string().required(),
 
@@ -25,6 +28,30 @@ const userValidator = Joi.object({
     .required(),
   token: Joi.string(),
 });
+
+const userEmailValidator = Joi.object({
+  email: Joi.string().required(),
+});
+
+const transport = nodemailer.createTransport({
+  host: "sandbox.smtp.mailtrap.io",
+  port: 2525,
+  auth: {
+    user: process.env.USER,
+    pass: process.env.PASS,
+  },
+});
+
+const verificationEmail = async (userEmail, verificationToken) => {
+  const emailOptions = {
+    from: "szymonsliwa@proton.me",
+    to: userEmail,
+    subject: "E-mail verification",
+    html: `Copy the link to verify your email: http://localhost:3000/api/users/verify/${verificationToken}`,
+  };
+
+  transport.sendMail(emailOptions).catch((err) => console.log(err));
+};
 
 const registerUser = async (req, res, next) => {
   const { email, password } = req.body;
@@ -60,6 +87,7 @@ const registerUser = async (req, res, next) => {
       email,
       password: hashPassword,
       avatarURL,
+      verificationToken: nanoid(),
     });
 
     res.status(201).json({
@@ -143,7 +171,7 @@ const logoutUser = async (req, res, next) => {
 const currentUser = async (req, res, next) => {
   try {
     const { email, subscription, id } = req.user;
-    //  const response = await service.getUserById(id);
+
     res.status(200).json({
       status: "success",
       code: 200,
@@ -197,10 +225,77 @@ const updateAvatar = async (req, res, next) => {
   }
 };
 
+const verify = async (req, res, next) => {
+  console.log(req.body);
+  const { email } = req.body;
+  const validation = userEmailValidator.validate(req.body);
+
+  if (validation.error?.message) {
+    return res.status(400).json({ message: validation.error.message });
+  }
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+    if (user.verify) {
+      return res
+        .status(400)
+        .json({ message: "Verification has already been passed" });
+    }
+    const newVerificationToken = user.verificationToken;
+    console.log(newVerificationToken);
+    await verificationEmail(email, newVerificationToken);
+    res.status(200).json({
+      status: "success",
+      code: 200,
+      message: "Verification email has been sent",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyUserByToken = async (req, res, next) => {
+  try {
+    const { verificationToken } = req.params;
+    const response = await service.getUserByVerificationToken(
+      verificationToken
+    );
+    console.log(response);
+    if (response) {
+      await service.updateUserVerification(response.id);
+      res.status(200).json({
+        status: "success",
+        code: 200,
+        data: "OK",
+        ResponseBody: {
+          message: "Verification successful",
+        },
+      });
+    } else {
+      return res.status(404).json({
+        status: "fail",
+        code: 404,
+        data: "Not found",
+        ResponseBody: {
+          message: "User not found",
+        },
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
   currentUser,
   updateAvatar,
+  verify,
+  // verificationToken,
+  verifyUserByToken,
 };
