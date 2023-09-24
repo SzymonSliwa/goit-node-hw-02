@@ -28,6 +28,14 @@ const user = new Schema({
   avatarURL: {
     type: String,
   },
+  verify: {
+    type: Boolean,
+    default: false,
+  },
+  verificationToken: {
+    type: String,
+    required: [true, "Verify token is required"],
+  },
 });
 
 user.methods.validPassword = function (password) {
@@ -54,6 +62,17 @@ const updateUserAvatar = async (id, avatarURL) => {
   return User.findByIdAndUpdate({ _id: id }, { avatarURL }, { new: true });
 };
 
+const getUserByVerificationToken = (verificationToken) => {
+  return User.findOne({ token: verificationToken });
+};
+
+const updateUserVerification = async (id) => {
+  return User.findByIdAndUpdate(
+    { _id: id },
+    { verificationToken: null, verify: true }
+  );
+};
+
 const User = mongoose.model("user", user, "users");
 
 module.exports = {
@@ -62,5 +81,7 @@ module.exports = {
   getLogoutUser,
   getUserById,
   updateUserAvatar,
+  getUserByVerificationToken,
+  updateUserVerification,
   User,
 };
